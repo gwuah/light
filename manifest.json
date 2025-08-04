@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Hilight",
+  "name": "Light",
   "version": "1.0",
   "description": "A simple extension to highlight text on web pages.",
   "permissions": [
