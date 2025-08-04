@@ -4,12 +4,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-function createHighlightSpan(text) {
+function createHighlightSpan(text, groupId) {
   const span = document.createElement("span");
   span.style.backgroundColor = "#FEFEC5";
   span.className = "text-highlighter-highlight";
-  span.style.position = 'relative'; // For positioning the delete button
+  span.style.position = 'relative';
   span.textContent = text;
+  span.dataset.groupId = groupId; // Store groupId on the element
 
   const deleteBtn = document.createElement("span");
   deleteBtn.textContent = "x";
@@ -18,7 +19,7 @@ function createHighlightSpan(text) {
   deleteBtn.style.right = "0";
   deleteBtn.style.color = "red";
   deleteBtn.style.cursor = "pointer";
-  deleteBtn.style.display = "none"; // Hidden by default
+  deleteBtn.style.display = "none";
   deleteBtn.className = "text-highlighter-delete-btn";
 
   span.addEventListener("mouseover", () => {
@@ -30,7 +31,7 @@ function createHighlightSpan(text) {
   });
 
   deleteBtn.addEventListener("click", (e) => {
-    e.stopPropagation(); // Prevent the click from propagating to the parent
+    e.stopPropagation();
     deleteHighlight(span);
   });
 
@@ -39,21 +40,24 @@ function createHighlightSpan(text) {
 }
 
 function deleteHighlight(highlightSpan) {
-  const text = highlightSpan.textContent.slice(0, -1); // Remove the 'x'
+  const groupId = highlightSpan.dataset.groupId;
   const url = window.location.href;
 
   chrome.storage.local.get({ highlights: {} }, (data) => {
     let highlights = data.highlights;
     if (highlights[url]) {
-      highlights[url] = highlights[url].filter(h => h.text !== text);
+      highlights[url] = highlights[url].filter(h => h.groupId !== groupId);
       if (highlights[url].length === 0) {
         delete highlights[url];
       }
     }
     chrome.storage.local.set({ highlights: highlights }, () => {
-      // Replace the span with its text content
-      const parent = highlightSpan.parentNode;
-      parent.replaceChild(document.createTextNode(text), highlightSpan);
+      // Remove all spans with the same group id
+      const spans = document.querySelectorAll(`.text-highlighter-highlight[data-group-id='${groupId}']`);
+      spans.forEach(span => {
+        const parent = span.parentNode;
+        parent.replaceChild(document.createTextNode(span.textContent.slice(0,-1)), span);
+      });
     });
   });
 }
@@ -63,31 +67,60 @@ function highlightSelectedText() {
   if (!selection.rangeCount) return;
 
   const range = selection.getRangeAt(0);
-  const selectedText = range.toString();
+  if (range.collapsed) return;
 
-  if (selectedText.trim() === "") return;
-
-  const highlightSpan = createHighlightSpan(selectedText);
-
-  range.deleteContents();
-  range.insertNode(highlightSpan);
-
+  const groupId = Date.now().toString();
   const url = window.location.href;
-  const highlight = {
-    text: selectedText,
-    url: url,
-    date: new Date().toISOString(),
-  };
+  const newHighlights = [];
 
-  chrome.storage.local.get({ highlights: {} }, (data) => {
-    const highlights = data.highlights;
-    if (!highlights[url]) {
-      highlights[url] = [];
+  // This is a more complex way to handle multi-node selections
+  const walker = document.createTreeWalker(
+    range.commonAncestorContainer,
+    NodeFilter.SHOW_TEXT,
+    (node) => {
+      return range.intersectsNode(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
     }
-    highlights[url].push(highlight);
-    chrome.storage.local.set({ highlights: highlights });
+  );
+
+  const nodes = [];
+  while(walker.nextNode()) {
+    nodes.push(walker.currentNode);
+  }
+
+  nodes.forEach(node => {
+    const nodeRange = document.createRange();
+    nodeRange.selectNodeContents(node);
+
+    const intersection = range.cloneRange();
+    intersection.intersectNode(nodeRange);
+
+    const text = intersection.toString();
+    if (text.trim() === "") return;
+
+    const highlightSpan = createHighlightSpan(text, groupId);
+    intersection.deleteContents();
+    intersection.insertNode(highlightSpan);
+
+    newHighlights.push({
+      text: text,
+      url: url,
+      date: new Date().toISOString(),
+      groupId: groupId
+    });
   });
+
+  if (newHighlights.length > 0) {
+    chrome.storage.local.get({ highlights: {} }, (data) => {
+      const highlights = data.highlights;
+      if (!highlights[url]) {
+        highlights[url] = [];
+      }
+      highlights[url].push(...newHighlights);
+      chrome.storage.local.set({ highlights: highlights });
+    });
+  }
 }
+
 
 function applyHighlights() {
   const url = window.location.href;
@@ -95,13 +128,13 @@ function applyHighlights() {
     const highlights = data.highlights[url];
     if (highlights) {
       highlights.forEach(highlight => {
-        findAndHighlight(highlight.text);
+        findAndHighlight(highlight.text, highlight.groupId);
       });
     }
   });
 }
 
-function findAndHighlight(searchText) {
+function findAndHighlight(searchText, groupId) {
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
     let node;
     while (node = walker.nextNode()) {
@@ -111,7 +144,12 @@ function findAndHighlight(searchText) {
             range.setStart(node, index);
             range.setEnd(node, index + searchText.length);
 
-            const highlightSpan = createHighlightSpan(searchText);
+            // Check if this text is already highlighted
+            if (range.startContainer.parentElement.className === 'text-highlighter-highlight') {
+                continue;
+            }
+
+            const highlightSpan = createHighlightSpan(searchText, groupId);
 
             range.deleteContents();
             range.insertNode(highlightSpan);
