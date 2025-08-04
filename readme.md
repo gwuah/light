@@ -7,11 +7,11 @@ A minimalist browser extension for highlighting web pages.
 ### Features
 
 - Text highlighting
-- Advertisment Free
-- Zero network communication
+- **Advertisment free**
+- **Zero** network communication
 - Dynamic highlight removal
 
 ### Other
 
-- [Motivation Post](gwuah.com/fragments/light)
+- [Motivation Post](https://gwuah.com/fragments/light)
 - [Prompts](./agent.md)
