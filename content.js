@@ -4,12 +4,91 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-function createHighlightSpan(text) {
+function getHighlight() {
+    let getChildren = (node, collection) => {
+        let children = Array.from(node.childNodes)
+        if (children.length == 0) {
+            collection.push(node)
+            return
+        }
+        children.forEach(child => getChildren(child, collection))
+    }
+
+    const chunks = []
+    const components = []
+
+    const selectedText = window.getSelection().getRangeAt(0).cloneContents()
+    getChildren(selectedText,components)
+
+    components.forEach(component => chunks.push(component.textContent))
+
+    return {
+        representation: selectedText.textContent,
+        chunks: chunks.filter(c => c.trim() !== ''), // filter out empty chunks
+    }
+}
+
+function highlightSelectedText() {
+  const { representation, chunks } = getHighlight();
+  if (representation.trim() === "") return;
+
+  const groupID = Date.now();
+  const url = window.location.href;
+
+  const highlight = {
+    groupID: groupID,
+    repr: representation,
+    chunks: chunks,
+    url: url,
+    date: new Date().toISOString(),
+  };
+
+  chrome.storage.local.get({ highlights: {} }, (data) => {
+    const highlights = data.highlights;
+    if (!highlights[url]) {
+      highlights[url] = [];
+    }
+    highlights[url].push(highlight);
+    chrome.storage.local.set({ highlights: highlights }, () => {
+        // Now apply the highlights to the page
+        chunks.forEach(chunk => {
+            findAndHighlight(chunk, groupID);
+        });
+    });
+  });
+}
+
+function findAndHighlight(searchText, groupId) {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+    let node;
+    while (node = walker.nextNode()) {
+        const index = node.nodeValue.indexOf(searchText);
+        if (index !== -1) {
+            const range = document.createRange();
+            range.setStart(node, index);
+            range.setEnd(node, index + searchText.length);
+
+             // Check if this text is already highlighted
+            if (range.startContainer.parentElement.className === 'text-highlighter-highlight') {
+                continue;
+            }
+
+            const highlightSpan = createHighlightSpan(searchText, groupId);
+
+            range.deleteContents();
+            range.insertNode(highlightSpan);
+            return;
+        }
+    }
+}
+
+function createHighlightSpan(text, groupId) {
   const span = document.createElement("span");
   span.style.backgroundColor = "#FEFEC5";
   span.className = "text-highlighter-highlight";
-  span.style.position = 'relative'; // For positioning the delete button
+  span.style.position = 'relative';
   span.textContent = text;
+  span.dataset.groupId = groupId; // Store groupId on the element
 
   const deleteBtn = document.createElement("span");
   deleteBtn.textContent = "x";
@@ -18,7 +97,7 @@ function createHighlightSpan(text) {
   deleteBtn.style.right = "0";
   deleteBtn.style.color = "red";
   deleteBtn.style.cursor = "pointer";
-  deleteBtn.style.display = "none"; // Hidden by default
+  deleteBtn.style.display = "none";
   deleteBtn.className = "text-highlighter-delete-btn";
 
   span.addEventListener("mouseover", () => {
@@ -30,7 +109,7 @@ function createHighlightSpan(text) {
   });
 
   deleteBtn.addEventListener("click", (e) => {
-    e.stopPropagation(); // Prevent the click from propagating to the parent
+    e.stopPropagation();
     deleteHighlight(span);
   });
 
@@ -39,69 +118,26 @@ function createHighlightSpan(text) {
 }
 
 function deleteHighlight(highlightSpan) {
-  const text = highlightSpan.textContent.slice(0, -1); // Remove the 'x'
+  const groupId = highlightSpan.dataset.groupId;
   const url = window.location.href;
 
   chrome.storage.local.get({ highlights: {} }, (data) => {
     let highlights = data.highlights;
     if (highlights[url]) {
-      highlights[url] = highlights[url].filter(h => h.text !== text);
+      // Find the highlight to delete by groupID
+      highlights[url] = highlights[url].filter(h => h.groupID.toString() !== groupId);
       if (highlights[url].length === 0) {
         delete highlights[url];
       }
     }
     chrome.storage.local.set({ highlights: highlights }, () => {
-      // Replace the span with its text content
-      const parent = highlightSpan.parentNode;
-      parent.replaceChild(document.createTextNode(text), highlightSpan);
+      // Remove all spans with the same group id
+      const spans = document.querySelectorAll(`.text-highlighter-highlight[data-group-id='${groupId}']`);
+      spans.forEach(span => {
+        const parent = span.parentNode;
+        parent.replaceChild(document.createTextNode(span.textContent.slice(0,-1)), span);
+      });
     });
-  });
-}
-
-function highlightSelectedText() {
-  const selection = window.getSelection();
-  if (!selection.rangeCount) return;
-
-  const range = selection.getRangeAt(0);
-  if (range.collapsed) return;
-
-  // Check if the selection spans multiple nodes
-  if (range.commonAncestorContainer.nodeType !== Node.TEXT_NODE && range.toString().trim() !== range.commonAncestorContainer.textContent.trim()) {
-      const container = range.commonAncestorContainer;
-      if (container.nodeType !== 1) { // if it's not an element node
-          alert("Highlighting across multiple elements is not supported.");
-          return;
-      }
-      const selectedNodes = Array.from(container.childNodes).filter(node => selection.containsNode(node, true));
-      if(selectedNodes.length > 1){
-          alert("Highlighting across multiple elements is not supported.");
-          return;
-      }
-  }
-
-
-  const selectedText = range.toString();
-  if (selectedText.trim() === "") return;
-
-  const highlightSpan = createHighlightSpan(selectedText);
-
-  range.deleteContents();
-  range.insertNode(highlightSpan);
-
-  const url = window.location.href;
-  const highlight = {
-    text: selectedText,
-    url: url,
-    date: new Date().toISOString(),
-  };
-
-  chrome.storage.local.get({ highlights: {} }, (data) => {
-    const highlights = data.highlights;
-    if (!highlights[url]) {
-      highlights[url] = [];
-    }
-    highlights[url].push(highlight);
-    chrome.storage.local.set({ highlights: highlights });
   });
 }
 
@@ -111,29 +147,12 @@ function applyHighlights() {
     const highlights = data.highlights[url];
     if (highlights) {
       highlights.forEach(highlight => {
-        findAndHighlight(highlight.text);
+        highlight.chunks.forEach(chunk => {
+            findAndHighlight(chunk, highlight.groupID);
+        });
       });
     }
   });
-}
-
-function findAndHighlight(searchText) {
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
-    let node;
-    while (node = walker.nextNode()) {
-        const index = node.nodeValue.indexOf(searchText);
-        if (index !== -1) {
-            const range = document.createRange();
-            range.setStart(node, index);
-            range.setEnd(node, index + searchText.length);
-
-            const highlightSpan = createHighlightSpan(searchText);
-
-            range.deleteContents();
-            range.insertNode(highlightSpan);
-            return;
-        }
-    }
 }
 
 window.addEventListener("load", applyHighlights);

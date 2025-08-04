@@ -40,7 +40,7 @@ function renderHighlights(highlightsByUrl) {
       highlightDiv.className = "highlight-text";
 
       const highlightText = document.createElement("span");
-      highlightText.textContent = `"${highlight.text}"`;
+      highlightText.textContent = `"${highlight.repr}"`; // Use the repr field
 
       const deleteBtn = document.createElement("span");
       deleteBtn.textContent = " x";
@@ -48,7 +48,7 @@ function renderHighlights(highlightsByUrl) {
       deleteBtn.style.cursor = "pointer";
       deleteBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        deleteHighlightFromPopup(url, highlight.text);
+        deleteHighlightFromPopup(url, highlight.groupID); // Pass groupID
       });
 
       highlightDiv.appendChild(highlightText);
@@ -69,11 +69,11 @@ function renderHighlights(highlightsByUrl) {
   totalHighlightsSpan.textContent = stats.totalHighlights;
 }
 
-function deleteHighlightFromPopup(url, text) {
+function deleteHighlightFromPopup(url, groupID) {
   chrome.storage.local.get({ highlights: {} }, (data) => {
     let highlights = data.highlights;
     if (highlights[url]) {
-      highlights[url] = highlights[url].filter(h => h.text !== text);
+      highlights[url] = highlights[url].filter(h => h.groupID !== groupID);
       if (highlights[url].length === 0) {
         delete highlights[url];
       }
