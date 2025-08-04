@@ -55,13 +55,15 @@ Please fix and try not to break other working features.
 
 ```
 You broke the core functionalities of the app. Highlights don't work at all. Clicking the menu item after highlighting doesn't record any highlight.
+```
 
 ### 6
 
 The revert is a good pragmatic step, but it's not a solution. I want multi-node highlights to work. The mere fact that you can detect it, is proof that you can make it work.
 
 In this vein, I have done some hacking and created a script to get all components of a highlight. It returns 2 things, a representation we should display on the popup.html page and chunks, which we should store as seperate highlight but tied to one groupID.
-```
+
+````
 
 ```js
 function getHighlight() {
@@ -87,7 +89,7 @@ function getHighlight() {
     chunks: chunks,
   };
 }
-```
+````
 
 ```
 This means, we have to change our internal datastruture to this.
