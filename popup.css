@@ -1,0 +1,47 @@
+body {
+  font-family: sans-serif;
+  width: 300px;
+  padding: 10px;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+}
+
+h1 {
+  font-size: 18px;
+  margin-top: 0;
+  text-align: center;
+}
+
+#stats {
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+
+#highlights-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.url-item {
+  cursor: pointer;
+  padding: 5px;
+  border-bottom: 1px solid #eee;
+}
+
+.url-item:hover {
+  background-color: #f0f0f0;
+}
+
+.highlights-for-url {
+  padding-left: 15px;
+  display: none; /* Hidden by default */
+}
+
+.highlight-text {
+  font-style: italic;
+  padding: 5px 0;
+}
