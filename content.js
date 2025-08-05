@@ -75,6 +75,7 @@ function findAndHighlight(searchText, groupId) {
     while (node = walker.nextNode()) {
         const index = node.nodeValue.indexOf(searchText);
         if (index !== -1) {
+          // console.log(node, index)
             const range = document.createRange();
             range.setStart(node, index);
             range.setEnd(node, index + searchText.length);
@@ -152,19 +153,28 @@ function deleteHighlight(highlightSpan) {
   });
 }
 
-function applyHighlights() {
-  const url = window.location.href;
-  chrome.storage.local.get({ highlights: {} }, (data) => {
-    console.log(data.highlights)
-    const highlights = data.highlights[url];
-    if (highlights) {
-      highlights.forEach(highlight => {
-        highlight.chunks.forEach(chunk => {
-            findAndHighlight(chunk, highlight.groupID);
-        });
+async function applyHighlightWithRetry(db, url) {
+  const applyHighlightsForURL = (db, url) => {
+    const hightlightsForUrl = db[url] || []
+    hightlightsForUrl.forEach(highlight => {
+      highlight.chunks.forEach(chunk => {
+        findAndHighlight(chunk, highlight.groupID);
       });
-    }
+    });
+  }
+
+  for (let i=0; i<10; i++) {
+    console.log(`paint attempt ${i}`)
+    applyHighlightsForURL(db, url)
+    await new Promise(r => setTimeout(r, 800));
+  }
+
+}
+
+function run() {
+  chrome.storage.local.get({ highlights: {} }, async (data) => {
+   await applyHighlightWithRetry(data.highlights, window.location.href)
   });
 }
 
-window.addEventListener("load", applyHighlights);
+window.addEventListener("load", run);
