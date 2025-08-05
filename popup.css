@@ -47,10 +47,10 @@ h1 {
 }
 
 .stat {
-  background-color: black;
-  color: white;
+  /* background-color: black; */
+  color: black;
   border-radius: 6px;
-  border: 1px solid gray;
+  border: 1px solid #ccc;
   text-align: center;
   border: 1px solid b;
 }
@@ -106,6 +106,10 @@ h1 {
 
 #toggle, #export {
   cursor: pointer;
+}
+
+#toggle {
+  margin-right: 10px;
 }
 
 
