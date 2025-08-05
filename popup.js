@@ -2,6 +2,27 @@ document.addEventListener("DOMContentLoaded", () => {
   loadAndRenderHighlights();
 });
 
+const toggleBtn = document.getElementById("toggle")
+toggleBtn.addEventListener("click" , ()=> {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.sendMessage(tabs[0].id, { action: "toggleHighlight" }, (response) => {
+    });
+  });
+})
+
+const exportBtn = document.getElementById("export")
+exportBtn.addEventListener("click" , ()=> {
+  chrome.storage.local.get({ highlights: {} }, (data) => {
+    navigator.clipboard.writeText(JSON.stringify(data.highlights))
+    .then(() => {
+      console.log('Copied to clipboard!');
+    })
+    .catch(err => {
+      console.error('Failed to copy: ', err);
+    });
+  });
+})
+
 function loadAndRenderHighlights() {
   chrome.storage.local.get({ highlights: {} }, (data) => {
     renderHighlights(data.highlights);
