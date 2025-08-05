@@ -69,7 +69,7 @@ function highlightSelectedText() {
   });
 }
 
-function findAndHighlight(searchText, groupId) {
+async function findAndHighlight(searchText, groupId) {
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
     let node;
     while (node = walker.nextNode()) {
@@ -153,22 +153,30 @@ function deleteHighlight(highlightSpan) {
   });
 }
 
+// during apply, sometimes urls can get fucked up
+// so an exact match wouldn't work, so we match on hostname level.
+// in future, we can properly store hostname -> subroutes -> highlights
 async function applyHighlightWithRetry(db, url) {
-  const applyHighlightsForURL = (db, url) => {
-    const hightlightsForUrl = db[url] || []
-    hightlightsForUrl.forEach(highlight => {
-      highlight.chunks.forEach(chunk => {
-        findAndHighlight(chunk, highlight.groupID);
+  const applyHighlightsForURL = async (db, url) => {
+    const expectedHost = (new URL(url)).hostname
+
+    Object.keys(db).forEach(async key => {
+      const gotHost = (new URL(key)).hostname
+      if (gotHost != expectedHost) return
+
+      db[key].forEach(async function(highlight) {
+        highlight.chunks.forEach(async function(chunk) {
+          await findAndHighlight(chunk, highlight.groupID);
+        });
       });
-    });
+    })
   }
 
   for (let i=0; i<10; i++) {
     console.log(`paint attempt ${i}`)
-    applyHighlightsForURL(db, url)
+    await applyHighlightsForURL(db, url)
     await new Promise(r => setTimeout(r, 800));
   }
-
 }
 
 function run() {
