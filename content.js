@@ -4,6 +4,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // console.log(request)
+  if (request.action === "scrollToHighlight") {
+    const element = document.querySelector(`span[data-group-id='${request.groupID}']`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    sendResponse({ info: "Here is your data!" });
+  }
+});
+
 function getHighlight() {
     let getChildren = (node, collection) => {
         let children = Array.from(node.childNodes)
@@ -144,6 +155,7 @@ function deleteHighlight(highlightSpan) {
 function applyHighlights() {
   const url = window.location.href;
   chrome.storage.local.get({ highlights: {} }, (data) => {
+    console.log(data.highlights)
     const highlights = data.highlights[url];
     if (highlights) {
       highlights.forEach(highlight => {
