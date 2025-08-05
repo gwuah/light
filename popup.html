@@ -3,13 +3,26 @@
 <head>
   <title>Light</title>
   <link rel="stylesheet" type="text/css" href="popup.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@100;200;300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
 </head>
 <body>
   <div class="container">
-    <h1>Light &#x1F43D;</h1>
-    <div id="stats">
-      <p>Total Websites: <span id="total-websites">0</span></p>
-      <p>Total Highlights: <span id="total-highlights">0</span></p>
+    <nav class="barlow-semibold">
+      <h1>&#x1F43D; LIGHT</h1>
+      <!-- <button>Export</button> -->
+    </nav>
+    <div id="stats" class="barlow-semibold">
+      <div class="stat">
+        <p class="stat-desc">WEBSITES</p>
+        <p id="total-websites" class="stat-val">0</p>
+      </div>
+      <div class="stat">
+        <p class="stat-desc">HIGHLIGHTS</p>
+        <p id="total-highlights" class="stat-val">0</p>
+      </div>
     </div>
     <div id="highlights-list"></div>
   </div>

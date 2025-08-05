@@ -4,6 +4,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // console.log(request)
+  if (request.action === "scrollToHighlight") {
+    const element = document.querySelector(`span[data-group-id='${request.groupID}']`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    sendResponse({ info: "Here is your data!" });
+  }
+});
+
 function getHighlight() {
     let getChildren = (node, collection) => {
         let children = Array.from(node.childNodes)
@@ -58,12 +69,13 @@ function highlightSelectedText() {
   });
 }
 
-function findAndHighlight(searchText, groupId) {
+async function findAndHighlight(searchText, groupId) {
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
     let node;
     while (node = walker.nextNode()) {
         const index = node.nodeValue.indexOf(searchText);
         if (index !== -1) {
+          // console.log(node, index)
             const range = document.createRange();
             range.setStart(node, index);
             range.setEnd(node, index + searchText.length);
@@ -141,18 +153,36 @@ function deleteHighlight(highlightSpan) {
   });
 }
 
-function applyHighlights() {
-  const url = window.location.href;
-  chrome.storage.local.get({ highlights: {} }, (data) => {
-    const highlights = data.highlights[url];
-    if (highlights) {
-      highlights.forEach(highlight => {
-        highlight.chunks.forEach(chunk => {
-            findAndHighlight(chunk, highlight.groupID);
+// during apply, sometimes urls can get fucked up
+// so an exact match wouldn't work, so we match on hostname level.
+// in future, we can properly store hostname -> subroutes -> highlights
+async function applyHighlightWithRetry(db, url) {
+  const applyHighlightsForURL = async (db, url) => {
+    const expectedHost = (new URL(url)).hostname
+
+    Object.keys(db).forEach(async key => {
+      const gotHost = (new URL(key)).hostname
+      if (gotHost != expectedHost) return
+
+      db[key].forEach(async function(highlight) {
+        highlight.chunks.forEach(async function(chunk) {
+          await findAndHighlight(chunk, highlight.groupID);
         });
       });
-    }
+    })
+  }
+
+  for (let i=0; i<10; i++) {
+    console.log(`paint attempt ${i}`)
+    await applyHighlightsForURL(db, url)
+    await new Promise(r => setTimeout(r, 800));
+  }
+}
+
+function run() {
+  chrome.storage.local.get({ highlights: {} }, async (data) => {
+   await applyHighlightWithRetry(data.highlights, window.location.href)
   });
 }
 
-window.addEventListener("load", applyHighlights);
+window.addEventListener("load", run);
