@@ -68,8 +68,8 @@ function renderHighlights(highlightsByUrl) {
       const highlightDiv = document.createElement("div");
       highlightDiv.className = "highlight-text";
 
-      const highlightText = document.createElement("span");
-      highlightText.textContent = `"${highlight.repr}"`; // Use the repr field
+      const highlightText = document.createElement("p");
+      highlightText.textContent = `${highlight.repr}`; // Use the repr field
       highlightText.addEventListener("dblclick", (ev) => {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
           chrome.tabs.sendMessage(tabs[0].id, { action: "scrollToHighlight", groupID: highlight.groupID }, (response) => {
@@ -87,8 +87,8 @@ function renderHighlights(highlightsByUrl) {
         deleteHighlightFromPopup(url, highlight.groupID); // Pass groupID
       });
 
+      highlightText.appendChild(deleteBtn);
       highlightDiv.appendChild(highlightText);
-      highlightDiv.appendChild(deleteBtn);
       highlightsForUrl.appendChild(highlightDiv);
     });
 
