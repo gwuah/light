@@ -71,7 +71,7 @@ h1 {
 }
 
 .highlights-for-url {
-  margin-top: 7px;
+  margin-top: 10px;
   padding-left: 10px;
   display: none; /* Hidden by default */
 }
@@ -81,7 +81,7 @@ h1 {
   font-weight: 400;
   font-style: normal;
   letter-spacing: -0.1px;
-  margin-bottom: 8px;
+  margin-bottom: 13px;
 }
 
 .highlight-text p {
@@ -106,10 +106,13 @@ h1 {
 
 #toggle, #export {
   cursor: pointer;
+  border: 1px solid #ccc;
+  padding: 5px;
 }
 
 #toggle {
   margin-right: 10px;
+  border: 1px solid #ccc;
 }
 
 
