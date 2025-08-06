@@ -24,6 +24,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
+document.addEventListener("keydown", (event) => {
+  if (event.ctrlKey && event.key === "a") {
+    highlightSelectedText();
+  }
+});
+
 function toggleHighlight(el) {
   if (el.style.backgroundColor) {
     el.style.backgroundColor = '';

@@ -16,9 +16,9 @@ A minimalist browser extension for highlighting web pages.
 
 ### Usage
 
-Just highlight a piece of text, right click, add to extension.
+If you're on a mac, just select a text and press ctrl+a
 
-Will add a keybinding later, for better UX.
+Otherwise, just highlight a piece of text, right click, and click on "highlight text".
 
 ### Features
 
