@@ -40,17 +40,17 @@ h1 {
   display: grid;
   column-gap: 15px;
   grid-template-columns: auto auto;
-  border-bottom: 1px solid #ccc;
+  /* border-bottom: 1px solid #ccc; */
   padding-bottom: 10px;
   margin-bottom: 10px;
   text-align: center;
 }
 
 .stat {
-  background-color: black;
-  color: white;
+  /* background-color: black; */
+  color: black;
   border-radius: 6px;
-  border: 1px solid gray;
+  border: 1px solid #ccc;
   text-align: center;
   border: 1px solid b;
 }
@@ -63,7 +63,12 @@ h1 {
 .url-item {
   cursor: pointer;
   padding: 5px;
+  /* border-top: 1px solid #eee; */
   border-bottom: 1px solid #eee;
+}
+
+.url-item:first {
+  border-top: 1px solid #eee;
 }
 
 .url-item:hover {
@@ -71,7 +76,7 @@ h1 {
 }
 
 .highlights-for-url {
-  margin-top: 7px;
+  margin-top: 10px;
   padding-left: 10px;
   display: none; /* Hidden by default */
 }
@@ -81,7 +86,7 @@ h1 {
   font-weight: 400;
   font-style: normal;
   letter-spacing: -0.1px;
-  margin-bottom: 8px;
+  margin-bottom: 13px;
 }
 
 .highlight-text p {
@@ -106,6 +111,13 @@ h1 {
 
 #toggle, #export {
   cursor: pointer;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  padding: 5px;
+}
+
+#toggle {
+  margin-right: 10px;
 }
 
 

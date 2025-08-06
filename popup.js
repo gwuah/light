@@ -14,8 +14,11 @@ const exportBtn = document.getElementById("export")
 exportBtn.addEventListener("click" , ()=> {
   chrome.storage.local.get({ highlights: {} }, (data) => {
     navigator.clipboard.writeText(JSON.stringify(data.highlights))
-    .then(() => {
+    .then(async () => {
       console.log('Copied to clipboard!');
+      document.querySelector(".copied-notif").style.display = 'block';
+      await new Promise(r => setTimeout(r, 800));
+      document.querySelector(".copied-notif").style.display = 'none';
     })
     .catch(err => {
       console.error('Failed to copy: ', err);
