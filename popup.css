@@ -40,7 +40,7 @@ h1 {
   display: grid;
   column-gap: 15px;
   grid-template-columns: auto auto;
-  border-bottom: 1px solid #ccc;
+  /* border-bottom: 1px solid #ccc; */
   padding-bottom: 10px;
   margin-bottom: 10px;
   text-align: center;
@@ -63,7 +63,12 @@ h1 {
 .url-item {
   cursor: pointer;
   padding: 5px;
+  /* border-top: 1px solid #eee; */
   border-bottom: 1px solid #eee;
+}
+
+.url-item:first {
+  border-top: 1px solid #eee;
 }
 
 .url-item:hover {
@@ -107,12 +112,12 @@ h1 {
 #toggle, #export {
   cursor: pointer;
   border: 1px solid #ccc;
+  border-radius: 2px;
   padding: 5px;
 }
 
 #toggle {
   margin-right: 10px;
-  border: 1px solid #ccc;
 }
 
 

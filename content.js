@@ -80,37 +80,38 @@ function highlightSelectedText() {
     }
     highlights[url].push(highlight);
     chrome.storage.local.set({ highlights: highlights }, () => {
-        // Now apply the highlights to the page
-        chunks.forEach(chunk => {
-            findAndHighlight(chunk, groupID);
-        });
+        reapplyHighlightSequence(highlight)
     });
   });
 }
 
-async function findAndHighlight(searchText, groupId) {
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
-    let node;
-    while (node = walker.nextNode()) {
-        const index = node.nodeValue.indexOf(searchText);
-        if (index !== -1) {
-            console.log(searchText, index)
-            const range = document.createRange();
-            range.setStart(node, index);
-            range.setEnd(node, index + searchText.length);
+function attachButton(span) {
+  const deleteBtn = document.createElement("span");
+    deleteBtn.textContent = "x";
+    deleteBtn.style.position = "absolute";
+    deleteBtn.style.top = "0";
+    deleteBtn.style.right = "0";
+    deleteBtn.style.color = "red";
+    deleteBtn.style.cursor = "pointer";
+    deleteBtn.style.display = "none";
+    deleteBtn.className = "text-highlighter-delete-btn"
 
-             // Check if this text is already highlighted
-            if (range.startContainer.parentElement.className === 'text-highlighter-highlight') {
-                continue;
-            }
+  span.addEventListener("mouseover", () => {
+    deleteBtn.style.display = "inline";
+  });
 
-            const highlightSpan = createHighlightSpan(searchText, groupId);
+  span.addEventListener("mouseout", () => {
+    deleteBtn.style.display = "none";
+  });
 
-            range.deleteContents();
-            range.insertNode(highlightSpan);
-            return;
-        }
-    }
+   deleteBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    deleteHighlight(span);
+  });
+
+  span.appendChild(deleteBtn);
+
+  return span
 }
 
 function createHighlightSpan(text, groupId) {
@@ -121,30 +122,6 @@ function createHighlightSpan(text, groupId) {
   span.textContent = text;
   span.dataset.groupId = groupId; // Store groupId on the element
 
-  const deleteBtn = document.createElement("span");
-  deleteBtn.textContent = "x";
-  deleteBtn.style.position = "absolute";
-  deleteBtn.style.top = "0";
-  deleteBtn.style.right = "0";
-  deleteBtn.style.color = "red";
-  deleteBtn.style.cursor = "pointer";
-  deleteBtn.style.display = "none";
-  deleteBtn.className = "text-highlighter-delete-btn";
-
-  span.addEventListener("mouseover", () => {
-    deleteBtn.style.display = "inline";
-  });
-
-  span.addEventListener("mouseout", () => {
-    deleteBtn.style.display = "none";
-  });
-
-  deleteBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    deleteHighlight(span);
-  });
-
-  span.appendChild(deleteBtn);
   return span;
 }
 
@@ -155,14 +132,12 @@ function deleteHighlight(highlightSpan) {
   chrome.storage.local.get({ highlights: {} }, (data) => {
     let highlights = data.highlights;
     if (highlights[url]) {
-      // Find the highlight to delete by groupID
       highlights[url] = highlights[url].filter(h => h.groupID.toString() !== groupId);
       if (highlights[url].length === 0) {
         delete highlights[url];
       }
     }
     chrome.storage.local.set({ highlights: highlights }, () => {
-      // Remove all spans with the same group id
       const spans = document.querySelectorAll(`.text-highlighter-highlight[data-group-id='${groupId}']`);
       spans.forEach(span => {
         const parent = span.parentNode;
@@ -373,8 +348,9 @@ function wrapTextSlice(textNode, startOffset, endOffset, groupId) {
   if (before) frag.appendChild(document.createTextNode(before));
 
   if (middle) {
-    const span = createHighlightSpan("", groupId);
+    let span = createHighlightSpan("", groupId);
     span.textContent = middle;
+    span = attachButton(span)
     frag.appendChild(span);
   }
 
