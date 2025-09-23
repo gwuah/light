@@ -63,7 +63,15 @@ function getLongestString(strings) {
 function cleanUrl(url) {
   try {
     const urlObj = new URL(url);
-    return urlObj.pathname;
+    const searchParams = new URLSearchParams(urlObj.search);
+
+    // Remove UTM parameters
+    const utmParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+    utmParams.forEach(param => searchParams.delete(param));
+
+    // Reconstruct the URL with cleaned parameters
+    const cleanedSearch = searchParams.toString();
+    return urlObj.pathname + (cleanedSearch ? '?' + cleanedSearch : '');
   } catch (e) {
     return url;
   }
@@ -71,6 +79,14 @@ function cleanUrl(url) {
 
 function getLatestTimestamp(highlights) {
   return Math.max(...highlights.map(h => new Date(h.date).getTime()));
+}
+
+function formatDate(timestamp) {
+  const date = new Date(timestamp);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = String(date.getFullYear()).slice(-2);
+  return `${day}/${month}/${year}`;
 }
 
 function renderHighlights(highlightsByUrl) {
@@ -112,10 +128,27 @@ function renderHighlights(highlightsByUrl) {
     const totalHighlightsInDomain = Object.values(urlsInDomain).reduce((sum, highlights) => sum + highlights.length, 0);
     stats.totalHighlights += totalHighlightsInDomain;
 
+    // Get latest timestamp for this domain
+    const latestTimestamp = Math.max(...Object.values(urlsInDomain).flat().map(h => new Date(h.date).getTime()));
+    const formattedDate = formatDate(latestTimestamp);
+
     // Create domain header
     const domainItem = document.createElement("div");
     domainItem.className = "url-item";
-    domainItem.textContent = domain;
+    domainItem.style.display = "flex";
+    domainItem.style.justifyContent = "space-between";
+    domainItem.style.alignItems = "center";
+
+    const domainText = document.createElement("span");
+    domainText.textContent = domain;
+
+    const dateText = document.createElement("span");
+    dateText.textContent = formattedDate;
+    dateText.style.fontSize = "12px";
+    dateText.style.color = "#666";
+
+    domainItem.appendChild(domainText);
+    domainItem.appendChild(dateText);
 
     const domainContent = document.createElement("div");
     domainContent.className = "domain-content";
