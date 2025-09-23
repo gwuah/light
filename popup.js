@@ -60,8 +60,36 @@ function getLongestString(strings) {
 }
 
 
+function cleanUrl(url) {
+  try {
+    const urlObj = new URL(url);
+    const searchParams = new URLSearchParams(urlObj.search);
+
+    // Remove UTM parameters
+    const utmParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+    utmParams.forEach(param => searchParams.delete(param));
+
+    // Reconstruct the URL with cleaned parameters
+    const cleanedSearch = searchParams.toString();
+    return urlObj.pathname + (cleanedSearch ? '?' + cleanedSearch : '');
+  } catch (e) {
+    return url;
+  }
+}
+
+function getLatestTimestamp(highlights) {
+  return Math.max(...highlights.map(h => new Date(h.date).getTime()));
+}
+
+function formatDate(timestamp) {
+  const date = new Date(timestamp);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = String(date.getFullYear()).slice(-2);
+  return `${day}/${month}/${year}`;
+}
+
 function renderHighlights(highlightsByUrl) {
-  const multipageChecker = getmultipagedomains(highlightsByUrl)
   const stats = {
     totalWebsites: 0,
     totalHighlights: 0,
@@ -74,55 +102,123 @@ function renderHighlights(highlightsByUrl) {
   // Clear the list before rendering
   highlightsList.innerHTML = "";
 
-  const urls = Object.keys(highlightsByUrl);
-  stats.totalWebsites = urls.length;
+  // Group URLs by domain
+  const domainGroups = {};
+  Object.keys(highlightsByUrl).forEach(url => {
+    const hostname = new URL(url).hostname;
+    if (!domainGroups[hostname]) {
+      domainGroups[hostname] = {};
+    }
+    domainGroups[hostname][url] = highlightsByUrl[url];
+  });
 
-  urls.forEach(url => {
-    const highlights = highlightsByUrl[url];
-    stats.totalHighlights += highlights.length;
+  // Sort domains by latest highlight timestamp
+  const sortedDomains = Object.keys(domainGroups).sort((a, b) => {
+    const latestA = Math.max(...Object.values(domainGroups[a]).flat().map(h => new Date(h.date).getTime()));
+    const latestB = Math.max(...Object.values(domainGroups[b]).flat().map(h => new Date(h.date).getTime()));
+    return latestB - latestA;
+  });
 
-    const urlItem = document.createElement("div");
-    urlItem.className = "url-item";
-    urlItem.textContent = multipageChecker(url) ? new URL(url).href : new URL(url).hostname; 
+  stats.totalWebsites = sortedDomains.length;
 
-    const highlightsForUrl = document.createElement("div");
-    highlightsForUrl.className = "highlights-for-url";
+  sortedDomains.forEach(domain => {
+    const urlsInDomain = domainGroups[domain];
 
-    highlights.forEach(highlight => {
-      const highlightDiv = document.createElement("div");
-      highlightDiv.className = "highlight-text";
+    // Count total highlights for this domain
+    const totalHighlightsInDomain = Object.values(urlsInDomain).reduce((sum, highlights) => sum + highlights.length, 0);
+    stats.totalHighlights += totalHighlightsInDomain;
 
-      const highlightText = document.createElement("p");
-      highlightText.textContent = `${highlight.repr}`; // Use the repr field
-      highlightText.addEventListener("dblclick", (ev) => {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          chrome.tabs.sendMessage(tabs[0].id, { action: "scrollToHighlight", groupID: highlight.groupID }, (response) => {
-            console.log("Response from content script:", response);
+    // Get latest timestamp for this domain
+    const latestTimestamp = Math.max(...Object.values(urlsInDomain).flat().map(h => new Date(h.date).getTime()));
+    const formattedDate = formatDate(latestTimestamp);
+
+    // Create domain header
+    const domainItem = document.createElement("div");
+    domainItem.className = "url-item";
+    domainItem.style.display = "flex";
+    domainItem.style.justifyContent = "space-between";
+    domainItem.style.alignItems = "center";
+
+    const domainText = document.createElement("span");
+    domainText.textContent = domain;
+
+    const dateText = document.createElement("span");
+    dateText.textContent = formattedDate;
+    dateText.style.fontSize = "12px";
+    dateText.style.color = "#666";
+
+    domainItem.appendChild(domainText);
+    domainItem.appendChild(dateText);
+
+    const domainContent = document.createElement("div");
+    domainContent.className = "domain-content";
+    domainContent.style.display = "none";
+
+    // Sort URLs within domain by latest highlight timestamp
+    const sortedUrls = Object.keys(urlsInDomain).sort((a, b) => {
+      const latestA = getLatestTimestamp(urlsInDomain[a]);
+      const latestB = getLatestTimestamp(urlsInDomain[b]);
+      return latestB - latestA;
+    });
+
+    sortedUrls.forEach(url => {
+      const highlights = urlsInDomain[url];
+      const cleanPath = cleanUrl(url);
+
+      const pathItem = document.createElement("div");
+      pathItem.className = "url-item";
+      pathItem.style.paddingLeft = "20px";
+      pathItem.textContent = cleanPath;
+
+      const highlightsForUrl = document.createElement("div");
+      highlightsForUrl.className = "highlights-for-url";
+      highlightsForUrl.style.display = "none";
+      highlightsForUrl.style.paddingLeft = "30px";
+
+      highlights.forEach(highlight => {
+        const highlightDiv = document.createElement("div");
+        highlightDiv.className = "highlight-text";
+
+        const highlightText = document.createElement("p");
+        highlightText.textContent = `${highlight.repr}`;
+        highlightText.addEventListener("dblclick", (ev) => {
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            chrome.tabs.sendMessage(tabs[0].id, { action: "scrollToHighlight", groupID: highlight.groupID }, (response) => {
+              console.log("Response from content script:", response);
+            });
           });
-        });
-      })
+        })
 
-      const deleteBtn = document.createElement("span");
-      deleteBtn.textContent = " x";
-      deleteBtn.style.color = "red";
-      deleteBtn.style.cursor = "pointer";
-      deleteBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        deleteHighlightFromPopup(url, highlight.groupID); // Pass groupID
+        const deleteBtn = document.createElement("span");
+        deleteBtn.textContent = " x";
+        deleteBtn.style.color = "red";
+        deleteBtn.style.cursor = "pointer";
+        deleteBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          deleteHighlightFromPopup(url, highlight.groupID);
+        });
+
+        highlightText.appendChild(deleteBtn);
+        highlightDiv.appendChild(highlightText);
+        highlightsForUrl.appendChild(highlightDiv);
       });
 
-      highlightText.appendChild(deleteBtn);
-      highlightDiv.appendChild(highlightText);
-      highlightsForUrl.appendChild(highlightDiv);
+      pathItem.addEventListener("click", () => {
+        const isDisplayed = highlightsForUrl.style.display === "block";
+        highlightsForUrl.style.display = isDisplayed ? "none" : "block";
+      });
+
+      domainContent.appendChild(pathItem);
+      domainContent.appendChild(highlightsForUrl);
     });
 
-    urlItem.addEventListener("click", () => {
-      const isDisplayed = highlightsForUrl.style.display === "block";
-      highlightsForUrl.style.display = isDisplayed ? "none" : "block";
+    domainItem.addEventListener("click", () => {
+      const isDisplayed = domainContent.style.display === "block";
+      domainContent.style.display = isDisplayed ? "none" : "block";
     });
 
-    highlightsList.appendChild(urlItem);
-    highlightsList.appendChild(highlightsForUrl);
+    highlightsList.appendChild(domainItem);
+    highlightsList.appendChild(domainContent);
   });
 
   totalWebsitesSpan.textContent = stats.totalWebsites;
