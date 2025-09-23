@@ -114,7 +114,7 @@ function renderHighlights(highlightsByUrl) {
 
     // Create domain header
     const domainItem = document.createElement("div");
-    domainItem.className = "domain-item";
+    domainItem.className = "url-item";
     domainItem.textContent = domain;
 
     const domainContent = document.createElement("div");
@@ -133,12 +133,14 @@ function renderHighlights(highlightsByUrl) {
       const cleanPath = cleanUrl(url);
 
       const pathItem = document.createElement("div");
-      pathItem.className = "path-item";
+      pathItem.className = "url-item";
+      pathItem.style.paddingLeft = "20px";
       pathItem.textContent = cleanPath;
 
       const highlightsForUrl = document.createElement("div");
       highlightsForUrl.className = "highlights-for-url";
       highlightsForUrl.style.display = "none";
+      highlightsForUrl.style.paddingLeft = "30px";
 
       highlights.forEach(highlight => {
         const highlightDiv = document.createElement("div");
