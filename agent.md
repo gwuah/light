@@ -100,3 +100,27 @@ such that webpage-url -> []Highlight
 
 when rendering the popup page, show the repr, but when painting all highlights on a webpage, apply paint per highlight.
 ```
+
+###7
+<datastructure>
+{}
+</datastructure>
+
+## Task
+
+Given the datastructure above, I want us to make some modifications to the code.
+
+For example, given these 2 urls "https://blog.cloudflare.com/rearchitecting-workers-kv-for-redundancy/?utm_campaign=cf_blog&utm_source=twitter&utm_medium=organic_social&utm_content=20250808/" and "https://blog.cloudflare.com/when-bloom-filters-dont-bloom/", the UI should group them the same parent. ie. blog.cloudflare.com
+
+it should look like this on the ui
+blog.cloudflare.com
+/rearchitecting-workers-kv-for-redundancy
+highlights from this page
+/when-bloom-filters-dont-bloom
+highlights from this page
+
+This is not specific to cloudflare, It's just an example. Group paths under the same domain.
+Secondly, "?utm_campaign=cf_blog&utm_source=twitter&utm_medium=organic_social&utm_content=20250808/" shouldn't show on the UI. it's dirty and not relevant.
+Lasly, the list of domain should be sorted in descending order, with the domain with the latest highlight showing at the top. You can get the timestamps from the highlights. So in simple terms, the domains get rendered based on their latest sub-path highlight.
+
+Most of this work is UI work, we don't have to change the underlying data.
