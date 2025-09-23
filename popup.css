@@ -75,6 +75,34 @@ h1 {
   background-color: #f0f0f0;
 }
 
+.domain-itemx {
+  cursor: pointer;
+  padding: 8px 5px;
+  border-bottom: 1px solid #ddd;
+  font-weight: 600;
+  background-color: #f8f9fa;
+}
+
+.domain-itemx:hover {
+  background-color: #e9ecef;
+}
+
+.domain-content {
+  display: none;
+}
+
+.path-itemx {
+  cursor: pointer;
+  padding: 6px 15px;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+  color: #666;
+}
+
+.path-itemx:hover {
+  background-color: #f0f0f0;
+}
+
 .highlights-for-url {
   margin-top: 10px;
   padding-left: 10px;
@@ -96,20 +124,21 @@ h1 {
   padding-left: 5px;
 }
 
-.stat-desc{
+.stat-desc {
   margin-bottom: 5px;
 }
 
 .stat-val {
   font-size: 33px;
-  margin: 0px 10px 10px 10px ;
+  margin: 0px 10px 10px 10px;
 }
 
 .red {
   border: 1px solid red;
 }
 
-#toggle, #export {
+#toggle,
+#export {
   cursor: pointer;
   border: 1px solid #ccc;
   border-radius: 2px;
@@ -119,7 +148,6 @@ h1 {
 #toggle {
   margin-right: 10px;
 }
-
 
 /* fonts */
 .barlow-light {
