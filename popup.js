@@ -2,29 +2,33 @@ document.addEventListener("DOMContentLoaded", () => {
   loadAndRenderHighlights();
 });
 
-const toggleBtn = document.getElementById("toggle")
-toggleBtn.addEventListener("click" , ()=> {
+const toggleBtn = document.getElementById("toggle");
+toggleBtn.addEventListener("click", () => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    chrome.tabs.sendMessage(tabs[0].id, { action: "toggleHighlight" }, (response) => {
-    });
+    chrome.tabs.sendMessage(
+      tabs[0].id,
+      { action: "toggleHighlight" },
+      (response) => {}
+    );
   });
-})
+});
 
-const exportBtn = document.getElementById("export")
-exportBtn.addEventListener("click" , ()=> {
+const exportBtn = document.getElementById("export");
+exportBtn.addEventListener("click", () => {
   chrome.storage.local.get({ highlights: {} }, (data) => {
-    navigator.clipboard.writeText(JSON.stringify(data.highlights))
-    .then(async () => {
-      console.log('Copied to clipboard!');
-      document.querySelector(".copied-notif").style.display = 'block';
-      await new Promise(r => setTimeout(r, 800));
-      document.querySelector(".copied-notif").style.display = 'none';
-    })
-    .catch(err => {
-      console.error('Failed to copy: ', err);
-    });
+    navigator.clipboard
+      .writeText(JSON.stringify(data.highlights))
+      .then(async () => {
+        console.log("Copied to clipboard!");
+        document.querySelector(".copied-notif").style.display = "block";
+        await new Promise((r) => setTimeout(r, 800));
+        document.querySelector(".copied-notif").style.display = "none";
+      })
+      .catch((err) => {
+        console.error("Failed to copy: ", err);
+      });
   });
-})
+});
 
 function loadAndRenderHighlights() {
   chrome.storage.local.get({ highlights: {} }, (data) => {
@@ -33,20 +37,19 @@ function loadAndRenderHighlights() {
 }
 
 function getmultipagedomains(highlightsByUrl) {
-  const urls = {}
-  Object.keys(highlightsByUrl).forEach(url => {
-    const hostname = new URL(url).hostname
+  const urls = {};
+  Object.keys(highlightsByUrl).forEach((url) => {
+    const hostname = new URL(url).hostname;
     if (!urls[hostname]) {
-      urls[hostname] = 1
+      urls[hostname] = 1;
     } else {
-      urls[hostname]++
+      urls[hostname]++;
     }
-  })
-
+  });
 
   return (url) => {
-    return urls[new URL(url).hostname] > 1
-  }
+    return urls[new URL(url).hostname] > 1;
+  };
 }
 
 function getLongestString(strings) {
@@ -59,32 +62,37 @@ function getLongestString(strings) {
   }, "");
 }
 
-
 function cleanUrl(url) {
   try {
     const urlObj = new URL(url);
     const searchParams = new URLSearchParams(urlObj.search);
 
     // Remove UTM parameters
-    const utmParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
-    utmParams.forEach(param => searchParams.delete(param));
+    const utmParams = [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "utm_term",
+      "utm_content",
+    ];
+    utmParams.forEach((param) => searchParams.delete(param));
 
     // Reconstruct the URL with cleaned parameters
     const cleanedSearch = searchParams.toString();
-    return urlObj.pathname + (cleanedSearch ? '?' + cleanedSearch : '');
+    return urlObj.pathname + (cleanedSearch ? "?" + cleanedSearch : "");
   } catch (e) {
     return url;
   }
 }
 
 function getLatestTimestamp(highlights) {
-  return Math.max(...highlights.map(h => new Date(h.date).getTime()));
+  return Math.max(...highlights.map((h) => new Date(h.date).getTime()));
 }
 
 function formatDate(timestamp) {
   const date = new Date(timestamp);
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
   const year = String(date.getFullYear()).slice(-2);
   return `${day}/${month}/${year}`;
 }
@@ -104,7 +112,7 @@ function renderHighlights(highlightsByUrl) {
 
   // Group URLs by domain
   const domainGroups = {};
-  Object.keys(highlightsByUrl).forEach(url => {
+  Object.keys(highlightsByUrl).forEach((url) => {
     const hostname = new URL(url).hostname;
     if (!domainGroups[hostname]) {
       domainGroups[hostname] = {};
@@ -114,22 +122,37 @@ function renderHighlights(highlightsByUrl) {
 
   // Sort domains by latest highlight timestamp
   const sortedDomains = Object.keys(domainGroups).sort((a, b) => {
-    const latestA = Math.max(...Object.values(domainGroups[a]).flat().map(h => new Date(h.date).getTime()));
-    const latestB = Math.max(...Object.values(domainGroups[b]).flat().map(h => new Date(h.date).getTime()));
+    const latestA = Math.max(
+      ...Object.values(domainGroups[a])
+        .flat()
+        .map((h) => new Date(h.date).getTime())
+    );
+    const latestB = Math.max(
+      ...Object.values(domainGroups[b])
+        .flat()
+        .map((h) => new Date(h.date).getTime())
+    );
     return latestB - latestA;
   });
 
   stats.totalWebsites = sortedDomains.length;
 
-  sortedDomains.forEach(domain => {
+  sortedDomains.forEach((domain) => {
     const urlsInDomain = domainGroups[domain];
 
     // Count total highlights for this domain
-    const totalHighlightsInDomain = Object.values(urlsInDomain).reduce((sum, highlights) => sum + highlights.length, 0);
+    const totalHighlightsInDomain = Object.values(urlsInDomain).reduce(
+      (sum, highlights) => sum + highlights.length,
+      0
+    );
     stats.totalHighlights += totalHighlightsInDomain;
 
     // Get latest timestamp for this domain
-    const latestTimestamp = Math.max(...Object.values(urlsInDomain).flat().map(h => new Date(h.date).getTime()));
+    const latestTimestamp = Math.max(
+      ...Object.values(urlsInDomain)
+        .flat()
+        .map((h) => new Date(h.date).getTime())
+    );
     const formattedDate = formatDate(latestTimestamp);
 
     // Create domain header
@@ -161,7 +184,7 @@ function renderHighlights(highlightsByUrl) {
       return latestB - latestA;
     });
 
-    sortedUrls.forEach(url => {
+    sortedUrls.forEach((url) => {
       const highlights = urlsInDomain[url];
       const cleanPath = cleanUrl(url);
 
@@ -175,7 +198,7 @@ function renderHighlights(highlightsByUrl) {
       highlightsForUrl.style.display = "none";
       highlightsForUrl.style.paddingLeft = "30px";
 
-      highlights.forEach(highlight => {
+      highlights.forEach((highlight) => {
         const highlightDiv = document.createElement("div");
         highlightDiv.className = "highlight-text";
 
@@ -183,11 +206,15 @@ function renderHighlights(highlightsByUrl) {
         highlightText.textContent = `${highlight.repr}`;
         highlightText.addEventListener("dblclick", (ev) => {
           chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            chrome.tabs.sendMessage(tabs[0].id, { action: "scrollToHighlight", groupID: highlight.groupID }, (response) => {
-              console.log("Response from content script:", response);
-            });
+            chrome.tabs.sendMessage(
+              tabs[0].id,
+              { action: "scrollToHighlight", groupID: highlight.groupID },
+              (response) => {
+                console.log("Response from content script:", response);
+              }
+            );
           });
-        })
+        });
 
         const deleteBtn = document.createElement("span");
         deleteBtn.textContent = " x";
@@ -229,7 +256,7 @@ function deleteHighlightFromPopup(url, groupID) {
   chrome.storage.local.get({ highlights: {} }, (data) => {
     let highlights = data.highlights;
     if (highlights[url]) {
-      highlights[url] = highlights[url].filter(h => h.groupID !== groupID);
+      highlights[url] = highlights[url].filter((h) => h.groupID !== groupID);
       if (highlights[url].length === 0) {
         delete highlights[url];
       }
