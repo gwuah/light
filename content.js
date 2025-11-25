@@ -126,7 +126,7 @@ function createHighlightSpan(text, groupId) {
   const span = document.createElement("span");
   span.style.backgroundColor = "#FEFEC5";
   span.style.color = "black";
-  span.style.padding = "3px";
+  // span.style.padding = "1px";
   span.className = "text-highlighter-highlight";
   span.style.position = "relative";
   span.textContent = text;
