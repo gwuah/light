@@ -20,14 +20,14 @@ exportBtn.addEventListener("click", () => {
   chrome.storage.local.get({ highlights: {} }, (data) => {
     navigator.clipboard
       .writeText(JSON.stringify(data.highlights))
-      .then(async () => {
-        console.log("Copied to clipboard!");
-        document.querySelector(".copied-notif").style.display = "block";
-        await new Promise((r) => setTimeout(r, 800));
-        document.querySelector(".copied-notif").style.display = "none";
+      .then(() => {
+        showSyncStatus("Copied to clipboard!", "success");
+        setTimeout(hideSyncStatus, 1500);
       })
       .catch((err) => {
         console.error("Failed to copy: ", err);
+        showSyncStatus("Failed to copy", "error");
+        setTimeout(hideSyncStatus, 2000);
       });
   });
 });
