@@ -1,3 +1,5 @@
+const COMMONPLACE_API = "http://localhost:5678";
+
 document.addEventListener("DOMContentLoaded", () => {
   loadAndRenderHighlights();
 });
@@ -29,6 +31,71 @@ exportBtn.addEventListener("click", () => {
       });
   });
 });
+
+const syncBtn = document.getElementById("sync");
+syncBtn.addEventListener("click", () => {
+  syncToCommonplace();
+});
+
+function showSyncStatus(message, type) {
+  const statusEl = document.getElementById("sync-status");
+  statusEl.textContent = message;
+  statusEl.className = `sync-status barlow-regular ${type}`;
+  statusEl.style.display = "block";
+}
+
+function hideSyncStatus() {
+  const statusEl = document.getElementById("sync-status");
+  statusEl.style.display = "none";
+}
+
+async function syncToCommonplace() {
+  const statusEl = document.getElementById("sync-status");
+
+  showSyncStatus("Syncing...", "syncing");
+
+  chrome.storage.local.get({ highlights: {} }, async (data) => {
+    const highlights = data.highlights;
+
+    if (Object.keys(highlights).length === 0) {
+      showSyncStatus("No highlights to sync", "error");
+      setTimeout(hideSyncStatus, 2000);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${COMMONPLACE_API}/light/sync`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ highlights }),
+      });
+
+      console.log("Response from sync:", response);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      const { resources_created, annotations_created, annotations_skipped } =
+        result.data;
+
+      const message = `+${annotations_created} new, ${annotations_skipped} skipped`;
+      showSyncStatus(message, "success");
+
+      // Store last sync timestamp
+      chrome.storage.local.set({ lastSync: new Date().toISOString() });
+
+      setTimeout(hideSyncStatus, 3000);
+    } catch (err) {
+      console.error("Sync failed:", err);
+      showSyncStatus(`Sync failed: ${err.message}`, "error");
+      setTimeout(hideSyncStatus, 3000);
+    }
+  });
+}
 
 function loadAndRenderHighlights() {
   chrome.storage.local.get({ highlights: {} }, (data) => {
